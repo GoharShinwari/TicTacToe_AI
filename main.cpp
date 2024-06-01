@@ -1,42 +1,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-#include <time.h> 
+#include <time.h>
+#include <algorithm> 
 
 void createBoard(char arr[3][3]);
-void printBoard(char arr[3][3]);
-char checkWin(char arr[3][3]);
+void printBoard(const char arr[3][3]);
+char checkWin(const char arr[3][3]);
 int goesFirst();
-std::vector<int> checkOpenMoves(char arr[3][3]);
+std::vector<int> checkOpenMoves(const char arr[3][3]);
 void cpuMove(char arr[3][3]);
-int highestTemp(std::vector<int> openMoves, char arr[3][3]);
+int selectBestMove(const std::vector<int>& openMoves, char arr[3][3]);
+void startGame(char arr[3][3], int random);
 
 void createBoard(char arr[3][3]) {
-    for (int i = 0; i < 3; i++) {
-        for (int g = 0; g < 3; g++) {
-            arr[i][g] = '-';
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            arr[i][j] = '-';
         }
     }
     printBoard(arr);
 }
 
-void printBoard(char arr[3][3]) {
-    for (int i = 0; i < 3; i++) {
-        for (int g = 0; g < 3; g++) {
-            printf("%c ", arr[i][g]);
+void printBoard(const char arr[3][3]) {
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            printf("%c ", arr[i][j]);
         }
         printf("\n");
     }
     printf("\n");
 }
 
-char checkWin(char arr[3][3]) {
-    for (int i = 0; i < 3; i++) {
+char checkWin(const char arr[3][3]) {
+    for (int i = 0; i < 3; ++i) {
         if (arr[i][0] == arr[i][1] && arr[i][1] == arr[i][2] && arr[i][0] != '-') {
             return arr[i][0];
         }
-    }
-    for (int i = 0; i < 3; i++) {
         if (arr[0][i] == arr[1][i] && arr[1][i] == arr[2][i] && arr[0][i] != '-') {
             return arr[0][i];
         }
@@ -47,18 +47,14 @@ char checkWin(char arr[3][3]) {
     if (arr[0][2] == arr[1][1] && arr[1][1] == arr[2][0] && arr[0][2] != '-') {
         return arr[0][2];
     }
-    bool tie = true;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
             if (arr[i][j] == '-') {
-                tie = false;
-                break;
+                return '-';
             }
         }
-        if (!tie) break;
     }
-    if (tie) return 'T';
-    return '-';
+    return 'T'; // Tie
 }
 
 int goesFirst() {
@@ -66,12 +62,12 @@ int goesFirst() {
     return rand() % 2;
 }
 
-std::vector<int> checkOpenMoves(char arr[3][3]) {
+std::vector<int> checkOpenMoves(const char arr[3][3]) {
     std::vector<int> openMoves;
-    for (int i = 0; i < 3; i++) {
-        for (int g = 0; g < 3; g++) {
-            if (arr[i][g] == '-') {
-                openMoves.push_back(i * 3 + g + 1); 
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            if (arr[i][j] == '-') {
+                openMoves.push_back(i * 3 + j + 1);
             }
         }
     }
@@ -85,7 +81,7 @@ void cpuMove(char arr[3][3]) {
         return;
     }
 
-    int selectedMove = highestTemp(openMoves, arr);
+    int selectedMove = selectBestMove(openMoves, arr);
     int row = (selectedMove - 1) / 3;
     int col = (selectedMove - 1) % 3;
     arr[row][col] = 'O';
@@ -93,73 +89,38 @@ void cpuMove(char arr[3][3]) {
     printBoard(arr);
 }
 
-int highestTemp(std::vector<int> openMoves, char arr[3][3]) {
-    int weights[] = {5, 4, 3, 2, 1};
-    int selectedMove = openMoves[0];
-    int maxWeight = -1;
-
-    // Check for winning moves
-    for (int move : openMoves) {
-        int row = (move - 1) / 3;
-        int col = (move - 1) % 3;
-        arr[row][col] = 'O';
-        if (checkWin(arr) == 'O') {
-            selectedMove = move;
-            maxWeight = weights[0];
-            arr[row][col] = '-'; 
-            return selectedMove;
-        }
-        arr[row][col] = '-'; 
-    }
-
-    // Check for blocking moves
-    for (int move : openMoves) {
-        int row = (move - 1) / 3;
-        int col = (move - 1) % 3;
-        arr[row][col] = 'X';
-        if (checkWin(arr) == 'X') {
-            selectedMove = move;
-            maxWeight = weights[1];
-            arr[row][col] = '-'; 
-            return selectedMove;
-        }
-        arr[row][col] = '-'; 
-    }
-
-    // Check for corner moves
-    for (int move : openMoves) {
-        if (move == 1 || move == 3 || move == 7 || move == 9) {
-            selectedMove = move;
-            maxWeight = weights[2];
-            return selectedMove;
-        }
-    }
-
-    // Check for middle move if opponent takes corner
-    if (openMoves.size() >= 3) {
-        int oppCorner = -1;
-        for (int i = 0; i < openMoves.size(); ++i) {
-            int move = openMoves[i];
-            if ((move == 1 && arr[2][2] == 'X') || (move == 3 && arr[2][0] == 'X') ||
-                (move == 7 && arr[0][2] == 'X') || (move == 9 && arr[0][0] == 'X')) {
-                oppCorner = move;
-                break;
+int selectBestMove(const std::vector<int>& openMoves, char arr[3][3]) {
+    // Check for winning moves or blocking moves
+    for (char player : {'O', 'X'}) {
+        for (int move : openMoves) {
+            int row = (move - 1) / 3;
+            int col = (move - 1) % 3;
+            arr[row][col] = player;
+            if (checkWin(arr) == player) {
+                arr[row][col] = '-';
+                return move;
             }
-        }
-        if (oppCorner != -1) {
-            selectedMove = 5; 
-            maxWeight = weights[3];
+            arr[row][col] = '-';
         }
     }
 
-    // Select randomly from remaining moves
-    if (maxWeight == -1) {
-        selectedMove = openMoves[rand() % openMoves.size()];
-        maxWeight = weights[4];
+    // Prefer middle move
+    if (std::find(openMoves.begin(), openMoves.end(), 5) != openMoves.end()) {
+        return 5;
     }
 
-    return selectedMove;
+    // Prefer corners over edges
+    std::vector<int> corners = {1, 3, 7, 9};
+    for (int corner : corners) {
+        if (std::find(openMoves.begin(), openMoves.end(), corner) != openMoves.end()) {
+            return corner;
+        }
+    }
+
+    // Return any open move (should be an edge at this point)
+    return openMoves[0];
 }
+
 void startGame(char arr[3][3], int random) {
     createBoard(arr);
     int turn = random;
@@ -173,32 +134,28 @@ void startGame(char arr[3][3], int random) {
         printf("You go first!\n");
     }
 
-    do {
+    while (winner == '-') {
         if (turn == 0) {
             int userMove;
             printf("Enter your move (1-9): ");
             scanf("%d", &userMove);
             int row = (userMove - 1) / 3;
             int col = (userMove - 1) % 3;
-            
+
             if (arr[row][col] == '-') {
                 arr[row][col] = 'X';
                 printBoard(arr);
                 winner = checkWin(arr);
-                if (winner == '-') {
-                    turn = 1;
-                }
+                turn = 1;
             } else {
                 printf("Invalid move. Please try again.\n");
             }
         } else {
             cpuMove(arr);
             winner = checkWin(arr);
-            if (winner == '-') {
-                turn = 0;
-            }
+            turn = 0;
         }
-    } while (winner == '-');
+    }
 
     if (winner == 'X') {
         printf("Congratulations! You win!\n");
